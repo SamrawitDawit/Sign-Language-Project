@@ -18,14 +18,15 @@ body {
 
 /* ── Header ──────────────────────────────────────────────────────────── */
 header {
-  padding: 14px 28px;
+  padding: 10px 20px;
   background: #16161f;
   border-bottom: 1px solid #24243a;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
-header h1 { font-size: 1.05rem; font-weight: 600; color: #b0b0d8; white-space: nowrap; }
+header h1 { font-size: 1rem; font-weight: 600; color: #b0b0d8; white-space: nowrap; }
 .status-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
@@ -36,6 +37,7 @@ header h1 { font-size: 1.05rem; font-weight: 600; color: #b0b0d8; white-space: n
 .status-dot.on { background: #3ddb7a; }
 .overall-bar-wrap {
   flex: 1;
+  min-width: 60px;
   height: 6px;
   background: #24243a;
   border-radius: 3px;
@@ -48,13 +50,37 @@ header h1 { font-size: 1.05rem; font-weight: 600; color: #b0b0d8; white-space: n
   transition: width 0.4s;
   width: 0%;
 }
-.counter { font-size: 0.8rem; color: #666; white-space: nowrap; }
+.counter { font-size: 0.75rem; color: #888; white-space: nowrap; }
+.phase-badge {
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #1e1e2e;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.phase-badge.retrain { background: #2a1e0d; color: #d8a040; }
+.timer-badge {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #1e1e2e;
+  color: #888;
+  min-width: 32px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.timer-badge.on { background: #0d2018; color: #3ddb7a; }
+.timer-badge.warn { background: #20180d; color: #dba040; }
+.timer-badge.critical { background: #200d0d; color: #db3a3a; }
+.hint { font-size: 0.6rem; color: #444; white-space: nowrap; }
 
 /* ── Main layout ─────────────────────────────────────────────────────── */
 main {
   display: flex;
-  gap: 24px;
-  padding: 28px;
+  gap: 20px;
+  padding: 20px;
   flex: 1;
   max-width: 1080px;
   width: 100%;
@@ -63,29 +89,29 @@ main {
 
 /* ── Left: reference panel ───────────────────────────────────────────── */
 .panel-left {
-  flex: 0 0 260px;
+  flex: 0 0 240px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 .letter-card {
   background: #16161f;
   border: 2px solid #24243a;
   border-radius: 14px;
   text-align: center;
-  padding: 24px 16px 18px;
+  padding: 20px 16px 16px;
 }
 .letter-card .big-letter {
-  font-size: 5.5rem;
+  font-size: 5rem;
   font-weight: 800;
   line-height: 1;
   color: #8080e8;
   letter-spacing: -2px;
 }
 .letter-card .sub {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #555;
-  margin-top: 8px;
+  margin-top: 6px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -129,7 +155,7 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 .camera-wrap {
@@ -155,34 +181,43 @@ canvas { pointer-events: none; }
   background: #16161f;
   border: 2px solid #24243a;
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 64px;
+  gap: 12px;
+  min-height: 60px;
   transition: border-color 0.15s, background 0.15s;
 }
 .feedback.state-correct { border-color: #2a6e46; background: #0d2018; }
 .feedback.state-wrong   { border-color: #6e2a2a; background: #200d0d; }
 .feedback.state-nohand  { border-color: #2a2a3e; }
+.feedback.state-timeout { border-color: #6e4a2a; background: #20180d; }
 
-.fb-icon { font-size: 1.6rem; flex-shrink: 0; }
+.fb-icon { font-size: 1.4rem; flex-shrink: 0; }
 .fb-text { flex: 1; min-width: 0; }
-.fb-main { font-size: 0.95rem; font-weight: 600; }
-.fb-sub  { font-size: 0.75rem; color: #666; margin-top: 3px; }
+.fb-main { font-size: 0.9rem; font-weight: 600; }
+.fb-sub  { font-size: 0.7rem; color: #666; margin-top: 2px; }
+
+.fb-stats {
+  font-size: 0.65rem;
+  color: #555;
+  text-align: right;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
 
 .commit-bar-wrap {
-  width: 72px;
-  height: 8px;
+  width: 60px;
+  height: 6px;
   background: #24243a;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   flex-shrink: 0;
 }
 .commit-bar-fill {
   height: 100%;
   background: #3ddb7a;
-  border-radius: 4px;
+  border-radius: 3px;
   transition: width 0.08s linear;
   width: 0%;
 }
@@ -191,40 +226,109 @@ canvas { pointer-events: none; }
 #advFlash {
   position: fixed;
   inset: 0;
-  background: rgba(60, 220, 120, 0.15);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.06s;
+  z-index: 5;
 }
 #advFlash.show { opacity: 1; }
+#advFlash.flash-commit { background: rgba(60, 220, 120, 0.12); }
+#advFlash.flash-timeout { background: rgba(220, 160, 60, 0.12); }
+#advFlash.flash-skip { background: rgba(100, 100, 200, 0.1); }
 
-/* ── Done screen ─────────────────────────────────────────────────────── */
-#doneScreen {
+/* ── Summary modal ───────────────────────────────────────────────────── */
+#summaryModal {
   display: none;
   position: fixed;
   inset: 0;
-  background: #0e0e16;
+  background: rgba(14, 14, 22, 0.96);
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
   z-index: 10;
+  padding: 20px;
 }
-#doneScreen.show { display: flex; }
-#doneScreen .done-big { font-size: 4rem; }
-#doneScreen h2 { font-size: 1.6rem; font-weight: 700; color: #8080e8; }
-#doneScreen p  { color: #666; font-size: 0.9rem; }
-#restartBtn {
-  margin-top: 8px;
+#summaryModal.show { display: flex; }
+.summary-box {
+  background: #16161f;
+  border: 1px solid #24243a;
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.summary-box h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #8080e8;
+  margin-bottom: 4px;
+}
+.summary-box .summary-sub {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 16px;
+}
+.summary-box .summary-rating {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+}
+.summary-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: #666;
+  font-weight: 500;
+  border-bottom: 1px solid #24243a;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.summary-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #1a1a28;
+}
+.summary-table .result-icon { font-size: 0.9rem; }
+.summary-table .result-ok { color: #3ddb7a; }
+.summary-table .result-timeout { color: #dba040; }
+.summary-table .result-skip { color: #8080d8; }
+.summary-table .retrain-row { background: rgba(218, 160, 64, 0.06); }
+.summary-box .summary-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.btn-primary {
+  flex: 1;
   background: #5060f8;
   border: none;
   color: #fff;
-  padding: 10px 28px;
+  padding: 10px 16px;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: background 0.2s;
 }
-#restartBtn:hover { background: #6070ff; }
+.btn-primary:hover { background: #6070ff; }
+.btn-secondary {
+  flex: 1;
+  background: #1e1e2e;
+  border: 1px solid #2e2e4e;
+  color: #aaa;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-secondary:hover { background: #2a2a3e; }
 </style>
 </head>
 <body>
@@ -232,10 +336,13 @@ canvas { pointer-events: none; }
 <header>
   <span class="status-dot" id="dot"></span>
   <h1>ASL Sign Language Teacher</h1>
+  <span class="phase-badge" id="phaseBadge">Main</span>
+  <span class="timer-badge" id="timerBadge">–</span>
   <div class="overall-bar-wrap">
     <div class="overall-bar-fill" id="overallBar"></div>
   </div>
   <span class="counter" id="counter">– / –</span>
+  <span class="hint"><kbd>Space</kbd> skip &middot; <kbd>R</kbd> restart &middot; <kbd>T</kbd> timer</span>
 </header>
 
 <main>
@@ -264,6 +371,7 @@ canvas { pointer-events: none; }
         <div class="fb-main" id="fbMain">Show your hand to the camera</div>
         <div class="fb-sub"  id="fbSub">Hold the correct sign to advance</div>
       </div>
+      <div class="fb-stats" id="fbStats"></div>
       <div class="commit-bar-wrap">
         <div class="commit-bar-fill" id="commitBar"></div>
       </div>
@@ -274,12 +382,26 @@ canvas { pointer-events: none; }
 <!-- Advance flash -->
 <div id="advFlash"></div>
 
-<!-- Done screen -->
-<div id="doneScreen">
-  <div class="done-big">🎉</div>
-  <h2>You did it!</h2>
-  <p>You signed all 24 letters of the ASL alphabet.</p>
-  <button id="restartBtn">Start over</button>
+<!-- Summary modal -->
+<div id="summaryModal">
+  <div class="summary-box">
+    <div class="summary-rating" id="summaryRating"></div>
+    <h2 id="summaryTitle">Session Complete</h2>
+    <p class="summary-sub" id="summarySub">Here's how you did on each letter.</p>
+    <table class="summary-table">
+      <thead>
+        <tr><th>Letter</th><th>Attempts</th><th>Wrong</th><th>Result</th></tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+    <div id="retrainNotice" style="display:none; font-size:0.8rem; color:#dba040; margin-bottom:12px; padding:8px 12px; background:#1a1408; border-radius:8px;">
+      Some letters need extra practice. They were cycled into a retraining round.
+    </div>
+    <div class="summary-actions">
+      <button class="btn-primary" id="summaryRestartBtn">Practice Again</button>
+      <button class="btn-secondary" id="summaryCloseBtn">Close</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -301,6 +423,12 @@ let idx        = 0;
 let ws         = null;
 let sendTimer  = null;
 let finished   = false;
+let phase      = 'main';
+let timerMode  = false;
+let retrainQueue = [];
+
+// Per-letter stats accumulated on the client for the summary
+let sessionStats = {};
 
 // ── Camera ────────────────────────────────────────────────────────────────
 async function startCamera() {
@@ -344,13 +472,47 @@ function startSending() {
     offCtx.drawImage(video, 0, 0, 320, 240);
     const b64 = off.toDataURL('image/jpeg', 0.7).split(',')[1];
     ws.send(JSON.stringify({ frame: b64 }));
-  }, 80); // ~12 fps
+  }, 80);
 }
 
 function sendLetterIdx(i) {
   if (ws && ws.readyState === WebSocket.OPEN)
     ws.send(JSON.stringify({ type: 'set_letter', index: i }));
 }
+
+function sendToggleTimer() {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ type: 'toggle_timer' }));
+}
+
+function sendSkip() {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ type: 'skip' }));
+}
+
+function sendRestart() {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ type: 'restart' }));
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (finished) return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    sendSkip();
+  } else if (e.code === 'KeyR') {
+    fullReset();
+  } else if (e.code === 'KeyT') {
+    timerMode = !timerMode;
+    const badge = document.getElementById('timerBadge');
+    badge.textContent = timerMode ? '10s' : '–';
+    badge.className = 'timer-badge' + (timerMode ? ' on' : '');
+    sendToggleTimer();
+  }
+});
 
 // ── Message handler ───────────────────────────────────────────────────────
 function handleMsg(data) {
@@ -359,13 +521,45 @@ function handleMsg(data) {
   document.getElementById('commitBar').style.width =
     Math.round(data.progress * 100) + '%';
 
+  // Update phase
+  phase = data.phase || 'main';
+  const badge = document.getElementById('phaseBadge');
+  badge.textContent = phase === 'retrain' ? 'Retrain' : 'Main';
+  badge.className = 'phase-badge' + (phase === 'retrain' ? ' retrain' : '');
+
+  // Update timer display
+  if (data.timer_mode) {
+    const tb = document.getElementById('timerBadge');
+    if (data.time_remaining !== null && data.time_remaining !== undefined) {
+      tb.textContent = Math.ceil(data.time_remaining) + 's';
+      tb.className = 'timer-badge on';
+      if (data.time_remaining <= 3) tb.className = 'timer-badge critical';
+      else if (data.time_remaining <= 6) tb.className = 'timer-badge warn';
+    }
+  } else {
+    const tb = document.getElementById('timerBadge');
+    if (tb.textContent !== '–') { tb.textContent = '–'; tb.className = 'timer-badge'; }
+  }
+
+  // Track retrain queue
+  if (data.retrain_queue) {
+    retrainQueue = data.retrain_queue;
+  }
+
+  // Update session stats from server
+  if (data.letter_stats) {
+    sessionStats[data.target] = { ...data.letter_stats };
+  }
+
+  // Handle advance
   if (data.advance) {
-    flash();
-    idx = data.letter_idx;           // server already incremented
-    if (idx === 0 && data.total_letters > 1) {
-      // wrapped around — all letters done
-      showDone();
+    const reason = data.advance_reason || 'commit';
+    flash(reason);
+
+    if (data.done) {
+      showSummary();
     } else {
+      idx = data.letter_idx;
       loadLetter(idx);
     }
   }
@@ -399,6 +593,7 @@ function updateFeedback(data) {
   const icon = document.getElementById('fbIcon');
   const main = document.getElementById('fbMain');
   const sub  = document.getElementById('fbSub');
+  const st   = document.getElementById('fbStats');
 
   fb.className = 'feedback';
 
@@ -407,6 +602,7 @@ function updateFeedback(data) {
     icon.textContent = '✋';
     main.textContent = 'Show your hand to the camera';
     sub.textContent  = 'Hold the correct sign to advance';
+    st.textContent = '';
     return;
   }
   if (data.correct) {
@@ -420,6 +616,10 @@ function updateFeedback(data) {
     main.textContent = `Looks like ${data.detected} — try again`;
     sub.textContent  = `Adjust your hand shape for ${data.target}`;
   }
+
+  // Show per-letter stats
+  const ls = data.letter_stats || {};
+  st.textContent = `attempts: ${ls.attempts || 0} · wrong: ${ls.wrong || 0}`;
 }
 
 // ── Letter loading ────────────────────────────────────────────────────────
@@ -433,40 +633,107 @@ function loadLetter(i) {
   noImg.style.display = 'none';
   img.src = `/static/asl/${letter}.jpeg`;
 
-  const pct = i / letters.length * 100;
+  const total = letters.length;
+  const pct = i / total * 100;
   document.getElementById('overallBar').style.width = pct + '%';
-  document.getElementById('counter').textContent    = `${i + 1} / ${letters.length}`;
+  document.getElementById('counter').textContent = `${i + 1} / ${total}`;
 }
 
 // ── Flash ─────────────────────────────────────────────────────────────────
-function flash() {
+function flash(reason) {
   const el = document.getElementById('advFlash');
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 280);
+  el.className = 'show flash-' + (reason || 'commit');
+  setTimeout(() => { el.className = ''; }, 280);
 }
 
-// ── Done ──────────────────────────────────────────────────────────────────
-function showDone() {
+// ── Session Summary ──────────────────────────────────────────────────────
+function showSummary() {
   finished = true;
   clearInterval(sendTimer);
+
+  const total = letters.length;
+  const completed = Object.values(sessionStats).filter(s => s && s.committed).length;
+  const timedOut = Object.values(sessionStats).filter(s => s && s.timed_out).length;
+  const skipped = Object.values(sessionStats).filter(s => s && s.skipped).length;
+  const totalWrong = Object.values(sessionStats).reduce((sum, s) => sum + (s?.wrong || 0), 0);
+
+  const pct = Math.round(completed / total * 100);
+  let rating, ratingEmoji;
+  if (pct >= 90) { rating = 'Outstanding!'; ratingEmoji = '🌟'; }
+  else if (pct >= 70) { rating = 'Great job!'; ratingEmoji = '👏'; }
+  else if (pct >= 50) { rating = 'Good effort!'; ratingEmoji = '💪'; }
+  else { rating = 'Keep practicing!'; ratingEmoji = '📚'; }
+
+  document.getElementById('summaryRating').textContent = ratingEmoji;
+  document.getElementById('summaryTitle').textContent = `Session Complete — ${rating}`;
+  document.getElementById('summarySub').textContent =
+    `${completed}/${total} letters committed · ${totalWrong} wrong guesses · ${timedOut} timed out · ${skipped} skipped`;
+
+  const tbody = document.getElementById('summaryBody');
+  tbody.innerHTML = '';
+  for (const letter of letters) {
+    const s = sessionStats[letter] || {};
+    const tr = document.createElement('tr');
+    if (retrainQueue && retrainQueue.includes(letter)) {
+      tr.className = 'retrain-row';
+    }
+
+    let resultIcon, resultClass;
+    if (s.committed) { resultIcon = '✅'; resultClass = 'result-ok'; }
+    else if (s.timed_out) { resultIcon = '⏳'; resultClass = 'result-timeout'; }
+    else if (s.skipped) { resultIcon = '⏭️'; resultClass = 'result-skip'; }
+    else { resultIcon = '—'; resultClass = ''; }
+
+    tr.innerHTML =
+      `<td><strong>${letter}</strong></td>` +
+      `<td>${s.attempts || 0}</td>` +
+      `<td>${s.wrong || 0}</td>` +
+      `<td><span class="result-icon ${resultClass}">${resultIcon}</span></td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Show retrain notice if applicable
+  const notice = document.getElementById('retrainNotice');
+  if (retrainQueue && retrainQueue.length > 0) {
+    notice.style.display = 'block';
+    notice.textContent = `Retrained: ${retrainQueue.join(', ')} were identified as weak spots and practiced again.`;
+  } else {
+    notice.style.display = 'none';
+  }
+
   document.getElementById('overallBar').style.width = '100%';
-  document.getElementById('doneScreen').classList.add('show');
+  document.getElementById('summaryModal').classList.add('show');
 }
 
-document.getElementById('restartBtn').onclick = () => {
+// ── Reset ─────────────────────────────────────────────────────────────────
+function fullReset() {
   finished = false;
   idx = 0;
-  document.getElementById('doneScreen').classList.remove('show');
+  phase = 'main';
+  timerMode = false;
+  retrainQueue = [];
+  sessionStats = {};
+
+  document.getElementById('summaryModal').classList.remove('show');
+  document.getElementById('timerBadge').textContent = '–';
+  document.getElementById('timerBadge').className = 'timer-badge';
+  document.getElementById('phaseBadge').textContent = 'Main';
+  document.getElementById('phaseBadge').className = 'phase-badge';
+
   loadLetter(0);
-  sendLetterIdx(0);
+  sendRestart();
   startSending();
+}
+
+// ── Event handlers ───────────────────────────────────────────────────────
+document.getElementById('skipBtn').onclick = () => {
+  if (!finished) sendSkip();
 };
 
-// ── Skip button ───────────────────────────────────────────────────────────
-document.getElementById('skipBtn').onclick = () => {
-  idx = (idx + 1) % letters.length;
-  loadLetter(idx);
-  sendLetterIdx(idx);
+document.getElementById('summaryRestartBtn').onclick = fullReset;
+document.getElementById('summaryCloseBtn').onclick = () => {
+  document.getElementById('summaryModal').classList.remove('show');
+  fullReset();
 };
 
 // ── Init ──────────────────────────────────────────────────────────────────
