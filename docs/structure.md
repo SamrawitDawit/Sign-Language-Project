@@ -23,11 +23,11 @@ Sign-Language-Project/
 │   ├── train_image_models.ipynb      Colab: HOG+SVM and MobileNetV2 CNN (run on Colab GPU)
 │   └── train_hog_svm.ipynb           Colab: HOG+SVM standalone (shareable with team members)
 │
-├── teacher/                          ← interactive ASL teacher web app
+├── asl-teacher/                      ← interactive ASL teacher web app
 │   ├── app.py                        FastAPI server — webcam WebSocket + MLP inference
 │   └── static/
 │       ├── index.html                single-page UI (vanilla JS, no framework)
-│       └── asl/                      24 reference images — A.jpg … Y.jpg (no J, no Z)
+│       └── asl/                      24 reference images — A.jpeg … Y.jpeg (no J, no Z)
 │
 ├── docs/                             ← findings and report assets
 │   ├── data.md                       dataset facts, preprocessing math, split sizes
@@ -37,11 +37,14 @@ Sign-Language-Project/
 │   └── per_class_accuracy.png        MLP per-class accuracy bar chart
 │
 ├── preprocessing.py                  normalize_landmarks() — wrist-center + scale normalize
-├── train_mlp.py                      train MLP + Random Forest; saves model.pt + results_mlp.json
-├── train.py                          train HandGCN; saves model_gcn.pt + results_gcn.json
+├── mlp_model.py                      MLP architecture (63→128→64→num_classes), shared by train/test
 ├── gcn_model.py                      HandGCN architecture + joint-angle feature engineering
+├── train_mlp.py                      train MLP + Random Forest; saves model.pt + results_mlp.json
+├── train_gcn.py                      train HandGCN; saves model_gcn.pt + results_gcn.json
+├── train.py                          legacy alias → train_gcn.py (backward compat)
 ├── infer_mlp.py                      predict(landmarks) → (letter, confidence) via MLP; lazy-loads
-├── infer.py                          legacy inference module (superseded by infer_mlp.py)
+├── infer_gcn.py                      predict(landmarks) → (letter, confidence) via GCN; lazy-loads
+├── infer.py                          legacy alias → infer_gcn.py (backward compat)
 ├── buffer.py                         SentenceBuffer — per-frame predictions → committed sentence
 ├── demo.py                           webcam loop: MediaPipe → MLP inference → buffer → display
 ├── test_buffer.py                    unit tests for SentenceBuffer
@@ -115,15 +118,17 @@ confusion_matrix_hog_svm.png  /  confusion_matrix_cnn.png
 ## Module responsibilities
 
 | Module | Responsibility | Consumed by |
-|---|---|---|
-| `preprocessing.py` | `normalize_landmarks()` — single source of truth for feature normalization | `train_mlp.py`, `infer_mlp.py` |
+|---|---|---|---|
+| `preprocessing.py` | `normalize_landmarks()` — single source of truth for feature normalization | `train_mlp.py`, `infer_mlp.py`, `infer_gcn.py` |
+| `mlp_model.py` | `MLP` architecture definition | `train_mlp.py`, `infer_mlp.py` |
+| `gcn_model.py` | `HandGCN` architecture; joint-angle feature engineering; adjacency matrix | `train_gcn.py`, `infer_gcn.py` |
 | `train_mlp.py` | Train MLP + Random Forest on landmark splits; save checkpoint + metrics | run once |
-| `train.py` | Train HandGCN on landmark splits; save checkpoint + metrics | run once |
-| `gcn_model.py` | `HandGCN` architecture; joint-angle feature engineering; adjacency matrix | `train.py` |
-| `infer_mlp.py` | Lazy-load MLP; `predict(landmarks) → (letter, confidence)` | `demo.py`, `teacher/app.py` |
+| `train_gcn.py` | Train HandGCN on landmark splits; save checkpoint + metrics | run once |
+| `infer_mlp.py` | Lazy-load MLP; `predict(landmarks) → (letter, confidence)` | `demo.py`, `asl-teacher/app.py` |
+| `infer_gcn.py` | Lazy-load GCN; `predict(landmarks) → (letter, confidence)` | standalone |
 | `buffer.py` | `SentenceBuffer` — temporal smoothing of per-frame predictions into words | `demo.py` |
 | `demo.py` | Webcam loop, MediaPipe, overlay rendering, sentence display | end user |
-| `teacher/app.py` | FastAPI server: WebSocket frame intake → MediaPipe → MLP → JSON response | browser UI |
+| `asl-teacher/app.py` | FastAPI server: WebSocket frame intake → MediaPipe → MLP → JSON response | browser UI |
 | `test_buffer.py` | Unit tests for `SentenceBuffer` commit/space/backspace/anti-repeat logic | CI / manual |
 
 ---
@@ -132,22 +137,19 @@ confusion_matrix_hog_svm.png  /  confusion_matrix_cnn.png
 
 ### Command-line demo
 ```bash
-python demo.py
+uv run python demo.py
 # press q to quit
 ```
 
 ### ASL Teacher web app
 ```bash
-# 1. Put 24 reference images in teacher/static/asl/  (A.jpg … Y.jpg, no J or Z)
-# 2. Start the server
-python teacher/app.py
-# 3. Open http://localhost:8000
+# Start the server
+uv run uvicorn asl-teacher.app:app --host 0.0.0.0 --port 8000
+
+# Then open http://localhost:8000 in your browser
 ```
 
-The teacher app requires `fastapi` and `uvicorn[standard]`:
-```bash
-pip install fastapi "uvicorn[standard]"
-```
+The teacher app requires `fastapi` and `uvicorn[standard]` — both are included in `pyproject.toml` and installed automatically via `uv sync`.
 
 ---
 
@@ -168,9 +170,22 @@ Training was split into two scripts after GCN was added:
 | Script | Trains | Output |
 |---|---|---|
 | `train_mlp.py` | MLP + Random Forest | `models/model.pt`, `results_mlp.json` |
-| `train.py` | HandGCN | `models/model_gcn.pt`, `results_gcn.json` |
+| `train_gcn.py` | HandGCN | `models/model_gcn.pt`, `results_gcn.json` |
 
-`infer_mlp.py` replaced `infer.py` as the live-inference module. `infer.py` is retained for reference but is no longer imported by any active module.
+`train.py` is now a legacy alias that delegates to `train_gcn.py`.
+
+### Inference split
+`infer_mlp.py` and `infer_gcn.py` serve the MLP and GCN models respectively:
+
+| Module | Model | Used by |
+|---|---|---|
+| `infer_mlp.py` | MLP | `demo.py`, `asl-teacher/app.py` |
+| `infer_gcn.py` | GCN | standalone inference |
+
+`infer.py` is a legacy alias that delegates to `infer_gcn.py`.
+
+### MLP model extracted
+The `MLP` class was extracted from `train_mlp.py` into `mlp_model.py` so it can be imported by both training and inference without duplication.
 
 ### Package management
 Dependencies are managed with [uv](https://docs.astral.sh/uv/).
