@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASL Teacher</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0e0e16;
+  color: #e0e0f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+header {
+  padding: 14px 28px;
+  background: #16161f;
+  border-bottom: 1px solid #24243a;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+header h1 { font-size: 1.05rem; font-weight: 600; color: #b0b0d8; white-space: nowrap; }
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #444;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.status-dot.on { background: #3ddb7a; }
+.overall-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #24243a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.overall-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5080f8, #8060f8);
+  border-radius: 3px;
+  transition: width 0.4s;
+  width: 0%;
+}
+.counter { font-size: 0.8rem; color: #666; white-space: nowrap; }
+
+/* ── Main layout ─────────────────────────────────────────────────────── */
+main {
+  display: flex;
+  gap: 24px;
+  padding: 28px;
+  flex: 1;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Left: reference panel ───────────────────────────────────────────── */
+.panel-left {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.letter-card {
+  background: #16161f;
+  border: 2px solid #24243a;
+  border-radius: 14px;
+  text-align: center;
+  padding: 24px 16px 18px;
+}
+.letter-card .big-letter {
+  font-size: 5.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #8080e8;
+  letter-spacing: -2px;
+}
+.letter-card .sub {
+  font-size: 0.75rem;
+  color: #555;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.ref-img-card {
+  background: #16161f;
+  border: 2px solid #24243a;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+.ref-img-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ref-img-card .no-img {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #444;
+}
+.skip-btn {
+  background: #1e1e2e;
+  border: 1px solid #2e2e4e;
+  color: #666;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.skip-btn:hover { color: #aaa; border-color: #4e4e6e; }
+
+/* ── Right: camera panel ─────────────────────────────────────────────── */
+.panel-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.camera-wrap {
+  position: relative;
+  background: #0a0a12;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
+.camera-wrap video,
+.camera-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+canvas { pointer-events: none; }
+
+/* ── Feedback bar ────────────────────────────────────────────────────── */
+.feedback {
+  background: #16161f;
+  border: 2px solid #24243a;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.feedback.state-correct { border-color: #2a6e46; background: #0d2018; }
+.feedback.state-wrong   { border-color: #6e2a2a; background: #200d0d; }
+.feedback.state-nohand  { border-color: #2a2a3e; }
+
+.fb-icon { font-size: 1.6rem; flex-shrink: 0; }
+.fb-text { flex: 1; min-width: 0; }
+.fb-main { font-size: 0.95rem; font-weight: 600; }
+.fb-sub  { font-size: 0.75rem; color: #666; margin-top: 3px; }
+
+.commit-bar-wrap {
+  width: 72px;
+  height: 8px;
+  background: #24243a;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.commit-bar-fill {
+  height: 100%;
+  background: #3ddb7a;
+  border-radius: 4px;
+  transition: width 0.08s linear;
+  width: 0%;
+}
+
+/* ── Advance flash ───────────────────────────────────────────────────── */
+#advFlash {
+  position: fixed;
+  inset: 0;
+  background: rgba(60, 220, 120, 0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.06s;
+}
+#advFlash.show { opacity: 1; }
+
+/* ── Done screen ─────────────────────────────────────────────────────── */
+#doneScreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #0e0e16;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+}
+#doneScreen.show { display: flex; }
+#doneScreen .done-big { font-size: 4rem; }
+#doneScreen h2 { font-size: 1.6rem; font-weight: 700; color: #8080e8; }
+#doneScreen p  { color: #666; font-size: 0.9rem; }
+#restartBtn {
+  margin-top: 8px;
+  background: #5060f8;
+  border: none;
+  color: #fff;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+#restartBtn:hover { background: #6070ff; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="status-dot" id="dot"></span>
+  <h1>ASL Sign Language Teacher</h1>
+  <div class="overall-bar-wrap">
+    <div class="overall-bar-fill" id="overallBar"></div>
+  </div>
+  <span class="counter" id="counter">– / –</span>
+</header>
+
+<main>
+  <!-- Left panel -->
+  <div class="panel-left">
+    <div class="letter-card">
+      <div class="big-letter" id="bigLetter">–</div>
+      <div class="sub">Sign this letter</div>
+    </div>
+    <div class="ref-img-card">
+      <img id="refImg" src="" alt="reference" onerror="this.style.display='none';document.getElementById('noImg').style.display='flex'">
+      <div class="no-img" id="noImg" style="display:none">No image</div>
+    </div>
+    <button class="skip-btn" id="skipBtn">Skip →</button>
+  </div>
+
+  <!-- Right panel -->
+  <div class="panel-right">
+    <div class="camera-wrap">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div class="feedback state-nohand" id="feedback">
+      <span class="fb-icon" id="fbIcon">✋</span>
+      <div class="fb-text">
+        <div class="fb-main" id="fbMain">Show your hand to the camera</div>
+        <div class="fb-sub"  id="fbSub">Hold the correct sign to advance</div>
+      </div>
+      <div class="commit-bar-wrap">
+        <div class="commit-bar-fill" id="commitBar"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Advance flash -->
+<div id="advFlash"></div>
+
+<!-- Done screen -->
+<div id="doneScreen">
+  <div class="done-big">🎉</div>
+  <h2>You did it!</h2>
+  <p>You signed all 24 letters of the ASL alphabet.</p>
+  <button id="restartBtn">Start over</button>
+</div>
+
+<script>
+const CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17],
+];
+
+const video    = document.getElementById('video');
+const canvas   = document.getElementById('overlay');
+const ctx      = canvas.getContext('2d');
+
+let letters    = [];
+let idx        = 0;
+let ws         = null;
+let sendTimer  = null;
+let finished   = false;
+
+// ── Camera ────────────────────────────────────────────────────────────────
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { width: 640, height: 480, facingMode: 'user' }, audio: false,
+  });
+  video.srcObject = stream;
+  video.onloadedmetadata = () => {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+  };
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+
+  ws.onopen = () => {
+    document.getElementById('dot').classList.add('on');
+    startSending();
+    sendLetterIdx(idx);
+  };
+
+  ws.onclose = () => {
+    document.getElementById('dot').classList.remove('on');
+    clearInterval(sendTimer);
+    if (!finished) setTimeout(connect, 2000);
+  };
+
+  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+}
+
+function startSending() {
+  const off  = document.createElement('canvas');
+  off.width  = 320;
+  off.height = 240;
+  const offCtx = off.getContext('2d');
+
+  sendTimer = setInterval(() => {
+    if (finished || !video.videoWidth || ws.readyState !== WebSocket.OPEN) return;
+    offCtx.drawImage(video, 0, 0, 320, 240);
+    const b64 = off.toDataURL('image/jpeg', 0.7).split(',')[1];
+    ws.send(JSON.stringify({ frame: b64 }));
+  }, 80); // ~12 fps
+}
+
+function sendLetterIdx(i) {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ type: 'set_letter', index: i }));
+}
+
+// ── Message handler ───────────────────────────────────────────────────────
+function handleMsg(data) {
+  drawLandmarks(data.landmarks);
+  updateFeedback(data);
+  document.getElementById('commitBar').style.width =
+    Math.round(data.progress * 100) + '%';
+
+  if (data.advance) {
+    flash();
+    idx = data.letter_idx;           // server already incremented
+    if (idx === 0 && data.total_letters > 1) {
+      // wrapped around — all letters done
+      showDone();
+    } else {
+      loadLetter(idx);
+    }
+  }
+}
+
+// ── Draw landmarks ────────────────────────────────────────────────────────
+function drawLandmarks(lms) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!lms || !lms.length) return;
+  const w = canvas.width, h = canvas.height;
+  const pts = lms.map(lm => [lm.x * w, lm.y * h]);
+  ctx.strokeStyle = 'rgba(0,210,120,0.9)';
+  ctx.lineWidth   = 2;
+  for (const [a,b] of CONNECTIONS) {
+    ctx.beginPath();
+    ctx.moveTo(pts[a][0], pts[a][1]);
+    ctx.lineTo(pts[b][0], pts[b][1]);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#ffffff';
+  for (const [x, y] of pts) {
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────────
+function updateFeedback(data) {
+  const fb   = document.getElementById('feedback');
+  const icon = document.getElementById('fbIcon');
+  const main = document.getElementById('fbMain');
+  const sub  = document.getElementById('fbSub');
+
+  fb.className = 'feedback';
+
+  if (!data.detected) {
+    fb.classList.add('state-nohand');
+    icon.textContent = '✋';
+    main.textContent = 'Show your hand to the camera';
+    sub.textContent  = 'Hold the correct sign to advance';
+    return;
+  }
+  if (data.correct) {
+    fb.classList.add('state-correct');
+    icon.textContent = '✅';
+    main.textContent = `Great! That's ${data.target}`;
+    sub.textContent  = `${Math.round(data.confidence * 100)}% confidence — keep holding`;
+  } else {
+    fb.classList.add('state-wrong');
+    icon.textContent = '❌';
+    main.textContent = `Looks like ${data.detected} — try again`;
+    sub.textContent  = `Adjust your hand shape for ${data.target}`;
+  }
+}
+
+// ── Letter loading ────────────────────────────────────────────────────────
+function loadLetter(i) {
+  const letter = letters[i];
+  document.getElementById('bigLetter').textContent = letter;
+
+  const img  = document.getElementById('refImg');
+  const noImg = document.getElementById('noImg');
+  img.style.display  = 'block';
+  noImg.style.display = 'none';
+  img.src = `/static/asl/${letter}.jpeg`;
+
+  const pct = i / letters.length * 100;
+  document.getElementById('overallBar').style.width = pct + '%';
+  document.getElementById('counter').textContent    = `${i + 1} / ${letters.length}`;
+}
+
+// ── Flash ─────────────────────────────────────────────────────────────────
+function flash() {
+  const el = document.getElementById('advFlash');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 280);
+}
+
+// ── Done ──────────────────────────────────────────────────────────────────
+function showDone() {
+  finished = true;
+  clearInterval(sendTimer);
+  document.getElementById('overallBar').style.width = '100%';
+  document.getElementById('doneScreen').classList.add('show');
+}
+
+document.getElementById('restartBtn').onclick = () => {
+  finished = false;
+  idx = 0;
+  document.getElementById('doneScreen').classList.remove('show');
+  loadLetter(0);
+  sendLetterIdx(0);
+  startSending();
+};
+
+// ── Skip button ───────────────────────────────────────────────────────────
+document.getElementById('skipBtn').onclick = () => {
+  idx = (idx + 1) % letters.length;
+  loadLetter(idx);
+  sendLetterIdx(idx);
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  await startCamera();
+  const resp = await fetch('/letters');
+  letters = (await resp.json()).letters;
+  loadLetter(0);
+  connect();
+}
+
+init();
+</script>
+</body>
+</html>

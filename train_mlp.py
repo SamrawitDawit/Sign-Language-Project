@@ -1,4 +1,3 @@
-
 import json
 import time
 
@@ -9,23 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from torch.utils.data import DataLoader, TensorDataset
 
-
-
-class MLP(nn.Module):
-    def __init__(self, input_dim: int, num_classes: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, num_classes),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+from mlp_model import MLP
 
 
 def load_splits(splits_path: str = "data/splits.npz"):
