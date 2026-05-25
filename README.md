@@ -32,11 +32,20 @@ uv run python demo.py
 ```
 Opens a webcam window. Hold a hand sign steady for ~0.5 s to commit a letter. Remove your hand for ~0.7 s to insert a word space. Sign `del` to backspace. Press `q` to quit.
 
+### ASL Teacher (interactive web app)
+```bash
+uv run uvicorn asl-teacher.app:app --host 0.0.0.0 --port 8000
+```
+Opens a browser-based ASL tutor. Shows a reference image of each letter, streams your webcam, and gives real-time feedback as you sign. Tracks progress across all 24 static letters (A–Y, no J/Z). Press `Space` to skip, `R` to restart.
+
+> Requires `fastapi` and `uvicorn` — already included when you run `uv sync`.
+
 ### Train from scratch
 ```bash
-uv run python train.py
+uv run python train_mlp.py    # MLP + Random Forest
+uv run python train_gcn.py    # Graph Neural Network
 ```
-Trains MLP + Random Forest on `data/splits.npz`. Saves `models/model.pt` and `results.json`. Takes ~2 min on CPU.
+Trains on `data/splits.npz`. Saves results to `models/` and `results_*.json`. Takes ~2 min on CPU.
 
 ### Evaluation notebook
 ```bash
@@ -49,19 +58,27 @@ Generates confusion matrix, per-class accuracy chart, and model comparison table
 ## Repo structure
 
 ```
-data/                    raw data artifacts (landmarks, splits, label map)
-models/                  trained model checkpoint + MediaPipe task file
-notebooks/               data pipeline notebook (run once by M1)
-docs/                    findings, plots, and notes for the report
-preprocessing.py         normalize_landmarks() — single source of truth
-train.py                 MLP + RF training script
-infer.py                 predict(landmarks) -> (letter, confidence)
-buffer.py                SentenceBuffer — letter-to-sentence buffering
-demo.py                  live webcam demo
-evaluation.ipynb         confusion matrix, per-class accuracy, error analysis
-results.json             training metrics (MLP 98.45%, RF 98.80%)
-pyproject.toml           uv project manifest and dependency list
-uv.lock                  fully pinned lockfile (auto-generated, do not edit)
+data/                      raw data artifacts (landmarks, splits, label map)
+models/                    trained model checkpoints + MediaPipe task file
+notebooks/                 data pipeline + Colab training notebooks
+docs/                      findings, plots, and notes for the report
+asl-teacher/               interactive ASL tutor (FastAPI + vanilla JS)
+
+preprocessing.py           normalize_landmarks() — single source of truth
+gcn_model.py               HandGCN architecture + joint-angle features
+mlp_model.py               MLP architecture (extracted from train_mlp.py)
+train_gcn.py               GCN training script
+train_mlp.py               MLP + Random Forest training script
+train.py                   legacy alias → train_gcn.py
+infer_mlp.py               predict(landmarks) → (letter, confidence) via MLP
+infer_gcn.py               predict(landmarks) → (letter, confidence) via GCN
+infer.py                   legacy alias → infer_gcn.py
+buffer.py                  SentenceBuffer — letter-to-sentence buffering
+demo.py                    live webcam demo
+evaluation.ipynb           confusion matrix, per-class accuracy, error analysis
+test_buffer.py             unit tests for SentenceBuffer
+pyproject.toml             uv project manifest and dependency list
+uv.lock                    fully pinned lockfile (auto-generated, do not edit)
 ```
 
 See [docs/structure.md](docs/structure.md) for a full annotated breakdown.
