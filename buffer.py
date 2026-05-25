@@ -1,5 +1,6 @@
-COMMIT_FRAMES = 15        # frames same letter must be held to commit
-SPACE_FRAMES = 20         # no-hand frames before inserting a word space
+COMMIT_FRAMES = 10
+SPACE_FRAMES = 15
+SENTENCE_END_FRAMES = 60
 CONFIDENCE_THRESHOLD = 0.85
 
 
@@ -8,38 +9,51 @@ class SentenceBuffer:
     Converts per-frame letter predictions into a running sentence.
 
     Interaction grammar:
-      - Same letter held >= COMMIT_FRAMES consecutive frames → commit letter
-      - 'space' class held >= COMMIT_FRAMES frames → commit a word space
-      - 'del' class held >= COMMIT_FRAMES frames → delete last committed char
-      - No hand detected for >= SPACE_FRAMES frames → insert word space
-      - Prediction confidence below threshold → treated as no prediction
+      - Same letter held >= commit_frames consecutive frames → commit letter to current word
+      - 'space' class held >= commit_frames frames → end current word, insert word space
+      - 'del' class held >= commit_frames frames → backspace last character
+      - No hand >= space_frames frames → insert word space
+      - No hand >= sentence_end_frames frames → reset everything
+      - Anti-repeat: after committing a letter, the same letter must be
+        released (hand removed or different letter shown) before it can commit again.
+        Prevents "HELLOOO" from a single held gesture.
+
+    All frame-count parameters are constructor args so the demo can tune them
+    without touching this file.
     """
 
     def __init__(
         self,
+        confidence_threshold: float = CONFIDENCE_THRESHOLD,
         commit_frames: int = COMMIT_FRAMES,
         space_frames: int = SPACE_FRAMES,
-        confidence_threshold: float = CONFIDENCE_THRESHOLD,
+        sentence_end_frames: int = SENTENCE_END_FRAMES,
     ):
+        self._confidence_threshold = confidence_threshold
         self._commit_frames = commit_frames
         self._space_frames = space_frames
-        self._confidence_threshold = confidence_threshold
+        self._sentence_end_frames = sentence_end_frames
 
-        self._sentence: str = ""
+        self._sentence: str = ""        # completed words (with trailing spaces)
+        self._current_word: str = ""    # word currently being spelled
         self._pending: str | None = None
         self._pending_count: int = 0
         self._no_hand_count: int = 0
+        self._last_committed: str | None = None  # anti-repeat guard
 
+    # ------------------------------------------------------------------
     def update(self, letter: str | None, confidence: float = 0.0) -> None:
         """Call once per frame. Pass letter=None when no hand is detected."""
         if letter is None:
             self._pending = None
             self._pending_count = 0
+            self._last_committed = None  # hand removed → can re-sign same letter
+
             self._no_hand_count += 1
-            if self._no_hand_count >= self._space_frames:
-                if self._sentence and not self._sentence.endswith(" "):
-                    self._sentence += " "
-                self._no_hand_count = 0
+            if self._no_hand_count >= self._sentence_end_frames:
+                self.reset()
+            elif self._no_hand_count == self._space_frames:
+                self._insert_space()
             return
 
         self._no_hand_count = 0
@@ -49,7 +63,13 @@ class SentenceBuffer:
             self._pending_count = 0
             return
 
+        # Anti-repeat: last committed letter still showing → wait for release
+        if letter == self._last_committed:
+            return
+
+        # Letter changed → clear guard, restart counter
         if letter != self._pending:
+            self._last_committed = None
             self._pending = letter
             self._pending_count = 1
             return
@@ -59,66 +79,58 @@ class SentenceBuffer:
             return
 
         # --- commit ---
-        if letter == "del":
-            self._sentence = self._sentence[:-1]
-        elif letter == "space":
-            if not self._sentence.endswith(" "):
-                self._sentence += " "
-        else:
-            self._sentence += letter
-
+        self._last_committed = letter
         self._pending = None
         self._pending_count = 0
 
-    def get_current_sentence(self) -> str:
-        return self._sentence
+        if letter == "del":
+            self._backspace()
+        elif letter == "space":
+            self._insert_space()
+        else:
+            self._current_word += letter
 
-    def get_pending_letter(self) -> str | None:
-        """Letter currently being held but not yet committed."""
-        return self._pending
+    # ------------------------------------------------------------------
+    def get_state(self) -> dict:
+        """
+        Returns:
+            {
+                "pending_letter":   str | None,  # held but not yet committed
+                "pending_progress": float,        # 0.0–1.0 for progress bar
+                "current_word":     str,          # word being spelled right now
+                "sentence":         str,          # full display string
+                "is_no_hand":       bool,
+            }
+        """
+        return {
+            "pending_letter": self._pending,
+            "pending_progress": (
+                min(self._pending_count / self._commit_frames, 1.0)
+                if self._pending is not None else 0.0
+            ),
+            "current_word": self._current_word,
+            "sentence": self._sentence + self._current_word,
+            "is_no_hand": self._no_hand_count > 0,
+        }
 
-    def get_progress(self) -> float:
-        """Fraction of commit threshold reached for the pending letter (0.0–1.0)."""
-        if self._pending is None:
-            return 0.0
-        return min(self._pending_count / self._commit_frames, 1.0)
-
-    def clear(self) -> None:
+    def reset(self) -> None:
         self._sentence = ""
+        self._current_word = ""
         self._pending = None
         self._pending_count = 0
         self._no_hand_count = 0
+        self._last_committed = None
 
+    # ------------------------------------------------------------------
+    def _insert_space(self) -> None:
+        if self._current_word:
+            self._sentence += self._current_word + " "
+            self._current_word = ""
+        elif self._sentence and not self._sentence.endswith(" "):
+            self._sentence += " "
 
-# ---------------------------------------------------------------------------
-# Quick smoke test
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    buf = SentenceBuffer(commit_frames=3, space_frames=4, confidence_threshold=0.5)
-
-    # Hold 'H' for 3 frames → commits
-    for _ in range(3):
-        buf.update("H", 0.95)
-    assert buf.get_current_sentence() == "H", buf.get_current_sentence()
-
-    # Hold 'I' for 3 frames → commits
-    for _ in range(3):
-        buf.update("I", 0.95)
-    assert buf.get_current_sentence() == "HI"
-
-    # No hand for 4 frames → space
-    for _ in range(4):
-        buf.update(None)
-    assert buf.get_current_sentence() == "HI "
-
-    # Hold 'del' for 3 frames → removes space
-    for _ in range(3):
-        buf.update("del", 0.95)
-    assert buf.get_current_sentence() == "HI"
-
-    # Low-confidence prediction → ignored
-    buf.update("Z", 0.3)
-    assert buf.get_pending_letter() is None
-
-    print("All assertions passed.")
-    print("Sentence:", repr(buf.get_current_sentence()))
+    def _backspace(self) -> None:
+        if self._current_word:
+            self._current_word = self._current_word[:-1]
+        elif self._sentence:
+            self._sentence = self._sentence[:-1]

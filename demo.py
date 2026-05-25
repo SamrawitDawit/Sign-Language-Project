@@ -8,7 +8,7 @@ from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import HandLandmarker, HandLandmarkerOptions, RunningMode
 
 from buffer import SentenceBuffer
-from infer import predict
+from infer_mlp import predict
 
 ROOT = Path(__file__).parent
 TASK_PATH = ROOT / "models" / "hand_landmarker.task"
@@ -119,12 +119,13 @@ def run(camera_index: int = 0) -> None:
                 last_confidence = 0.0
                 buf.update(None)
 
+            state = buf.get_state()
             frame = _draw_overlay(
                 frame,
-                buf.get_pending_letter(),
+                state["pending_letter"],
                 last_confidence,
-                buf.get_progress(),
-                buf.get_current_sentence(),
+                state["pending_progress"],
+                state["sentence"],
             )
 
             cv2.imshow("ASL Demo — press q to quit", frame)
@@ -133,7 +134,7 @@ def run(camera_index: int = 0) -> None:
 
     cap.release()
     cv2.destroyAllWindows()
-    print("Final sentence:", buf.get_current_sentence())
+    print("Final sentence:", buf.get_state()["sentence"])
 
 
 if __name__ == "__main__":

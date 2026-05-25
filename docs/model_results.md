@@ -6,10 +6,26 @@
 |---|---|---|---|
 | **MLP** | 63 → 128 → 64 → 28, ReLU + Dropout(0.3), Adam lr=1e-3, 50 epochs, batch 128 | **98.45%** | 45.7 s |
 | **Random Forest** | 200 trees, n_jobs=-1 (sklearn) | **98.80%** | 37.0 s |
+| **GCN** | HandGCN: 2× GCNLayer (4→32→64) + mean-pool → FC(64→28), LeakyReLU(0.2), Adam lr=3e-4, wd=1e-4, 50 epochs, batch 64 | **85.31%** | 104.6 s |
 
-Both models trained and evaluated on CPU. Full results saved in `results.json`.
+MLP and Random Forest results saved in `results_mlp.json`. GCN results saved in `results_gcn.json`.
 
 The MLP checkpoint is saved in `models/model.pt` as a state_dict with metadata keys `input_dim` (63) and `num_classes` (28).
+
+## GCN architecture and analysis
+
+**HandGCN** (4,092 parameters):
+- Input: (N, 21, 4) node features — (x, y, z) normalized coords + joint angle at each landmark
+- GCNLayer 1: Linear(4→32) → A_norm @ H → LeakyReLU(0.2)
+- GCNLayer 2: Linear(32→64) → A_norm @ H → LeakyReLU(0.2)
+- Readout: mean-pool over 21 nodes → FC(64→28)
+- Adjacency: symmetric normalized D^{-1/2}(A+I)D^{-1/2} over the 22-edge MediaPipe hand graph
+
+**GCN vs MLP gap: −13.14 percentage points** (85.31% vs 98.45%).
+
+This exceeds the guide's 3-point fallback threshold. The gap is attributable to model capacity: HandGCN has only 4K parameters vs the MLP's ~10K, and no residual connections. The paper this architecture references (Sarkar et al., 2024) achieves 99.14% with a 142K-parameter GCN using successive residual connections — significantly deeper than what is implemented here.
+
+**For the report:** The GCN is included in the three-paradigm comparison table as the graph deep learning representative, with the performance gap acknowledged. The live demo (`demo.py`) uses the MLP checkpoint (`models/model.pt` via `infer_mlp.py`) for reliability.
 
 ## MLP per-class accuracy (test set)
 

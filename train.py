@@ -1,60 +1,49 @@
-
 import json
 import time
 
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from torch.utils.data import DataLoader, TensorDataset
 
+from gcn_model import HandGCN, extract_node_features_batch
 
 
-class MLP(nn.Module):
-    def __init__(self, input_dim: int, num_classes: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, num_classes),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
-
-
-def load_splits(splits_path: str = "data/splits.npz"):
+def load_splits(splits_path: str = "data/splits.npz") -> dict:
     sp = np.load(splits_path)
-    return (
-        sp["X_train"], sp["y_train"],
-        sp["X_val"],   sp["y_val"],
-        sp["X_test"],  sp["y_test"],
-    )
+    out = {}
+    for split in ("train", "val", "test"):
+        X = sp[f"X_{split}"].reshape(-1, 21, 3)        # (N, 21, 3)
+        X = extract_node_features_batch(X)              # (N, 21, 4)
+        out[split] = (X, sp[f"y_{split}"])
+    return out
 
 
-def train_mlp(
-    X_train, y_train, X_val, y_val,
-    input_dim: int, num_classes: int,
-    epochs: int = 50, batch_size: int = 128, lr: float = 1e-3,
-) -> tuple[MLP, float]:
+def train(
+    sets: dict,
+    num_classes: int,
+    epochs: int = 50,
+    batch_size: int = 64,
+    lr: float = 3e-4,
+) -> tuple[HandGCN, float, float]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    to_t = lambda x, dt: torch.tensor(x, dtype=dt).to(device)
-    X_tr = to_t(X_train, torch.float32)
-    y_tr = to_t(y_train, torch.long)
-    X_v  = to_t(X_val,   torch.float32)
-    y_v  = to_t(y_val,   torch.long)
+    def tensors(X, y):
+        return (
+            torch.tensor(X, dtype=torch.float32).to(device),
+            torch.tensor(y, dtype=torch.long).to(device),
+        )
 
-    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
-    model = MLP(input_dim, num_classes).to(device)
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
-    loss_fn = nn.CrossEntropyLoss()
+    X_tr, y_tr = tensors(*sets["train"])
+    X_v,  y_v  = tensors(*sets["val"])
+    X_te, y_te = tensors(*sets["test"])
+
+    loader   = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    model    = HandGCN(num_classes=num_classes).to(device)
+    opt      = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    loss_fn  = nn.CrossEntropyLoss()
 
     t0 = time.time()
     for epoch in range(1, epochs + 1):
@@ -68,66 +57,45 @@ def train_mlp(
             model.eval()
             with torch.no_grad():
                 val_acc = accuracy_score(
-                    y_val, model(X_v).argmax(1).cpu().numpy()
+                    y_v.cpu().numpy(),
+                    model(X_v).argmax(1).cpu().numpy(),
                 )
             print(f"  epoch {epoch:3d} | val_acc {val_acc:.4f}")
 
-    return model, time.time() - t0
+    elapsed = time.time() - t0
 
-
-def evaluate(model: MLP, X_test, y_test) -> float:
-    device = next(model.parameters()).device
-    X_t = torch.tensor(X_test, dtype=torch.float32).to(device)
     model.eval()
     with torch.no_grad():
-        preds = model(X_t).argmax(1).cpu().numpy()
-    return float(accuracy_score(y_test, preds))
+        test_preds = model(X_te).argmax(1).cpu().numpy()
+    test_acc = float(accuracy_score(y_te.cpu().numpy(), test_preds))
+
+    return model, test_acc, elapsed
 
 
 def main():
-    X_train, y_train, X_val, y_val, X_test, y_test = load_splits()
-
     with open("data/label_to_index.json") as f:
-        label_to_index = json.load(f)
-    num_classes = len(label_to_index)
-    input_dim = X_train.shape[1]
+        num_classes = len(json.load(f))
 
-    print(f"Data: train={X_train.shape}, val={X_val.shape}, test={X_test.shape}")
-    print(f"Classes: {num_classes}, input_dim: {input_dim}")
+    print("Preparing node features (x, y, z + joint angle)...")
+    sets = load_splits()
+    tr_shape = sets["train"][0].shape
+    print(f"  train {tr_shape}  val {sets['val'][0].shape}  test {sets['test'][0].shape}")
 
-    # --- MLP ---
-    print("\nTraining MLP (63→128→64→num_classes)...")
-    model, mlp_time = train_mlp(X_train, y_train, X_val, y_val, input_dim, num_classes)
-    mlp_acc = evaluate(model, X_test, y_test)
-    print(f"MLP test accuracy: {mlp_acc:.4f}  ({mlp_time:.1f}s)")
+    print(f"\nTraining HandGCN ({num_classes} classes, in_dim=4)...")
+    model, test_acc, elapsed = train(sets, num_classes)
+    print(f"GCN test accuracy: {test_acc:.4f}  ({elapsed:.1f}s)")
 
     torch.save(
-        {"state_dict": model.state_dict(), "input_dim": input_dim, "num_classes": num_classes},
-        "models/model.pt",
+        {"state_dict": model.state_dict(), "num_classes": num_classes, "in_dim": 4},
+        "models/model_gcn.pt",
     )
-    print("Saved models/model.pt")
+    print("Saved models/model_gcn.pt")
 
-    # --- Random Forest ---
-    print("\nTraining Random Forest (200 trees)...")
-    t0 = time.time()
-    rf = RandomForestClassifier(n_estimators=200, n_jobs=-1, random_state=42)
-    rf.fit(X_train, y_train)
-    rf_time = time.time() - t0
-    rf_acc = float(accuracy_score(y_test, rf.predict(X_test)))
-    print(f"RF  test accuracy: {rf_acc:.4f}  ({rf_time:.1f}s)")
+    with open("results_gcn.json", "w") as f:
+        json.dump({"gcn": {"test_accuracy": test_acc, "train_time_s": round(elapsed, 1)}}, f, indent=2)
+    print("Saved results_gcn.json")
 
-    # --- Save results ---
-    results = {
-        "mlp": {"test_accuracy": mlp_acc, "train_time_s": round(mlp_time, 1)},
-        "rf":  {"test_accuracy": rf_acc,  "train_time_s": round(rf_time, 1)},
-    }
-    with open("results.json", "w") as f:
-        json.dump(results, f, indent=2)
-    print("\nSaved results.json")
-    print(f"\n{'Model':<8} {'Test Acc':>10} {'Train Time':>12}")
-    print("-" * 32)
-    print(f"{'MLP':<8} {mlp_acc:>10.4f} {mlp_time:>10.1f}s")
-    print(f"{'RF':<8} {rf_acc:>10.4f} {rf_time:>10.1f}s")
+    print(f"\nGCN test accuracy: {test_acc:.4f}")
 
 
 if __name__ == "__main__":
