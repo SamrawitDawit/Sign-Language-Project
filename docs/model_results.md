@@ -1,0 +1,85 @@
+# Model Results
+
+## Model comparison
+
+| Model | Architecture | Test Accuracy | Train Time |
+|---|---|---|---|
+| **MLP** | 63 → 128 → 64 → 28, ReLU + Dropout(0.3), Adam lr=1e-3, 50 epochs, batch 128 | **98.45%** | 45.7 s |
+| **Random Forest** | 200 trees, n_jobs=-1 (sklearn) | **98.80%** | 37.0 s |
+
+Both models trained and evaluated on CPU. Full results saved in `results.json`.
+
+The MLP checkpoint is saved in `models/model.pt` as a state_dict with metadata keys `input_dim` (63) and `num_classes` (28).
+
+## MLP per-class accuracy (test set)
+
+| Class | Accuracy | | Class | Accuracy |
+|---|---|---|---|---|
+| A | 99.08% | | O | 97.64% |
+| B | 100.00% | | P | 98.69% |
+| C | 100.00% | | Q | 99.06% |
+| D | 98.91% | | R | 97.64% |
+| E | 98.84% | | S | 98.17% |
+| F | 99.07% | | T | 98.02% |
+| G | 99.73% | | U | 98.40% |
+| H | 98.31% | | V | 98.69% |
+| I | 97.76% | | W | 98.64% |
+| J | 99.22% | | X | 95.99% |
+| K | 99.01% | | Y | 99.22% |
+| L | 99.21% | | Z | 100.00% |
+| **M** | **93.33%** | | del | 100.00% |
+| **N** | **90.58%** | | space | 98.25% |
+
+### Observations
+
+- **Weakest classes:** N (90.58%) and M (93.33%) are the two hardest. Both involve fingers curled over the palm with subtle differences in finger placement — a well-known source of confusion in static ASL recognition.
+- **X** (95.99%) is also lower than average; it requires a hooked index finger that can look similar to other bent-finger signs.
+- **Perfect or near-perfect recall:** B, C, Z, del all hit 100% recall on the test set. These have highly distinctive hand configurations.
+- **J and Z:** Despite being motion letters in real ASL, both score above 99% — the Kaggle dataset contains static handshape images (not motion sequences), so the model learns the characteristic static pose. At inference time with a webcam, results for J and Z may be less reliable if the signer performs the full motion.
+
+## MLP classification report (full)
+
+```
+              precision    recall  f1-score   support
+
+           A     0.9908    0.9908    0.9908       327
+           B     0.9940    1.0000    0.9970       331
+           C     1.0000    1.0000    1.0000       295
+           D     0.9973    0.9891    0.9932       368
+           E     0.9884    0.9884    0.9884       346
+           F     0.9930    0.9907    0.9919       430
+           G     0.9811    0.9973    0.9891       364
+           H     0.9972    0.9831    0.9901       356
+           I     0.9887    0.9776    0.9831       357
+           J     0.9820    0.9922    0.9871       385
+           K     0.9926    0.9901    0.9913       405
+           L     1.0000    0.9921    0.9960       378
+           M     0.9106    0.9333    0.9218       240
+           N     0.9251    0.9058    0.9153       191
+           O     0.9764    0.9764    0.9764       339
+           P     1.0000    0.9869    0.9934       306
+           Q     0.9906    0.9906    0.9906       318
+           R     0.9739    0.9764    0.9752       382
+           S     0.9741    0.9817    0.9779       383
+           T     0.9886    0.9802    0.9844       353
+           U     0.9788    0.9840    0.9814       376
+           V     0.9843    0.9869    0.9856       382
+           W     1.0000    0.9864    0.9932       368
+           X     0.9968    0.9599    0.9780       324
+           Y     0.9771    0.9922    0.9846       387
+           Z     0.9915    1.0000    0.9957       351
+         del     0.9815    1.0000    0.9907       266
+       space     0.9574    0.9825    0.9698       229
+
+    accuracy                         0.9845      9537
+   macro avg     0.9826    0.9827    0.9826      9537
+weighted avg     0.9846    0.9845    0.9845      9537
+```
+
+## Known limitations
+
+1. **Static-frame only.** J and Z require motion in real ASL. This model classifies the static hand pose at any given frame.
+2. **Single signer / studio dataset.** The Kaggle dataset was collected in controlled studio conditions. Generalization to different lighting, skin tones, hand sizes, or camera angles is untested.
+3. **No signer independence test.** All train/test samples come from the same source distribution; there is no held-out signer.
+4. **Handedness not normalized.** Left-hand signers will see degraded accuracy unless the demo mirrors the landmark input.
+5. **26.9% extraction failure rate.** Nearly a quarter of the original images produced no MediaPipe detection. The cause is likely low contrast, heavy cropping, or unusual framing in the source data. This may bias the dataset toward "easy" hand configurations.

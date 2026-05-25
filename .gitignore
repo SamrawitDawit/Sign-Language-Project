@@ -1,0 +1,19 @@
+# uv
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# webcam captures (local only)
+webcam_frames/
+webcam_landmarks.npy

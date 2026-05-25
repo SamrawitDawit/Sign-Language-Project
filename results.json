@@ -1,0 +1,10 @@
+{
+  "mlp": {
+    "test_accuracy": 0.9844814931320122,
+    "train_time_s": 45.7
+  },
+  "rf": {
+    "test_accuracy": 0.9880465555206039,
+    "train_time_s": 37.0
+  }
+}

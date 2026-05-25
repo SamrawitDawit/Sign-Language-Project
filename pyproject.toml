@@ -1,0 +1,15 @@
+[project]
+name = "sign-language-project"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "ipykernel>=7.2.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.9",
+    "mediapipe>=0.10.35",
+    "nbconvert>=7.17.1",
+    "numpy>=2.4.6",
+    "scikit-learn>=1.8.0",
+    "seaborn>=0.13.2",
+    "torch>=2.12.0",
+]
